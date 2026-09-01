@@ -7,7 +7,7 @@ import time
 
 from scapy.all import IP, ICMP, send
 
-DST = "google.com"         # cambiar por destino real segun necesidad
+DST = "127.0.0.1"          # cambiar por destino real segun necesidad
 PAYLOAD_LEN = 56           # bytes totales: 16 timeval + 40 patron (Linux 64 bits)
 TIMEVAL_LEN = 16           # 8 bytes tv_sec + 8 bytes tv_usec
 PATTERN_START = 0x10
@@ -29,14 +29,6 @@ def build_payload(char):
     return data[:PAYLOAD_LEN]
 
 
-def hexdump(data):
-    for offset in range(0, len(data), 16):
-        fila = data[offset:offset + 16]
-        hexs = " ".join(f"{b:02x}" for b in fila)
-        ascii_repr = "".join(chr(b) if 32 <= b < 127 else "." for b in fila)
-        print(f"{offset:04x}  {hexs:<47}  {ascii_repr}")
-
-
 def main():
     if os.geteuid() != 0:
         sys.exit("Requiere privilegios de root (usa sudo).")
@@ -48,16 +40,13 @@ def main():
     # la misma IP para todos los paquetes de la sesion, evitando que el
     # round-robin DNS mande cada caracter a un destino distinto.
     dst_ip = socket.gethostbyname(DST)
-    print(f"[DEBUG] {DST} resuelto a {dst_ip} (fijo para toda la sesion)")
 
     # IP id: base pseudoaleatoria (simula asignacion del kernel), no arranca en 1.
     ip_id_base = random.randint(0x1000, 0xFFFF - len(texto) - 1)
 
-    print(f"[DEBUG] payload de ejemplo ({PAYLOAD_LEN} bytes), caracter '{texto[0]}':")
-    hexdump(build_payload(texto[0]))
-    print()
-
     for i, char in enumerate(texto, start=1):
+        if i > 1:
+            time.sleep(1)  # 1 paquete/seg, igual que un ping real por defecto
         payload = build_payload(char)
         ip_id = (ip_id_base + i - 1) & 0xFFFF
         pkt = (

@@ -122,6 +122,8 @@ def main():
         else:
             print(linea)
 
+    print(f"Llave encontrada: {corrimiento_ganador}")
+
 
 if __name__ == "__main__":
     main()
